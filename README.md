@@ -14,8 +14,8 @@ Atharva Mete, Haotian Xue, Albert Wilcox, Yongxin Chen, Animesh Garg
 
 ## Latest Updates
 
-- \[2024-09-25\] Accepted at NeurIPS 2024 🎉
-- \[2024-09-09\] Initial release
+- [2024-09-25] Accepted at NeurIPS 2024 🎉
+- [2024-09-09] Initial release
 
 <hr style="border: 2px solid gray;"></hr>
 
@@ -23,7 +23,7 @@ Atharva Mete, Haotian Xue, Albert Wilcox, Yongxin Chen, Animesh Garg
 
 Please run the following commands in the given order to install the dependency for QueST
 
-```
+```Shell
 conda create -n quest python=3.10.14
 conda activate quest
 git clone https://github.com/atharvamete/QueST.git
@@ -34,37 +34,41 @@ python -m pip install -e .
 
 Note: Above automatically installs metaworld as python packages
 
-Install LIBERO seperately
+Install LIBERO separately
 
+```Shell
+pip install libero
 ```
+
+<!-- ```Shell
 git clone https://github.com/Lifelong-Robot-Learning/LIBERO.git
 cd LIBERO
 python -m pip install -e .
-```
+``` -->
 
 Note: All LIBERO dependencies are already included in quest/requirements.txt
 
 ## Dataset Download
 
-LIBERO: Please download the libero data seperately following their [docs](https://lifelong-robot-learning.github.io/LIBERO/html/algo_data/datasets.html#datasets).
+LIBERO: Please download the libero data separately following their [docs](https://lifelong-robot-learning.github.io/LIBERO/html/algo_data/datasets.html#datasets).
 
-MetaWorld: We have provided the script we used to collect the data using scripted policies in the MetaWorld package. Please run the following command to collect the data. This uses configs as per [collect_data.yaml](config/collect_data.yaml).
+<!-- MetaWorld: We have provided the script we used to collect the data using scripted policies in the MetaWorld package. Please run the following command to collect the data. This uses configs as per [collect_data.yaml](config/collect_data.yaml).
 
-```
+```Shell
 python scripts/generate_metaworld_dataset.py
 ```
 
-We generate 100 demonstrations for each of 45 pretraining tasks and 5 for downstream tasks.
+We generate 100 demonstrations for each of 45 pretraining tasks and 5 for downstream tasks. -->
 
 ## Training
 
 First set the path to the dataset `data_prefix` and `output_prefix` in [train_base](config/train_base.yaml). `output_prefix` is where all the logs and checkpoints will be stored.
 
-We provide detailed sample commands for training all stages and for all baselines in the [scripts](scripts) directory. For all methods, [autoencoder.sh](scripts/quest/autoencoder.sh) trains the autoencoder (only used in QueST and VQ-BeT), [main.sh](scripts/quest/main.sh) trains the main algorithm (skill-prior incase of QueST), and [finetune.sh](scripts/quest/finetune.sh) finetunes the model on downstream tasks.
+We provide detailed sample commands for training all stages and for all baselines in the [scripts](scripts) directory. For all methods, [autoencoder.sh](scripts/quest/autoencoder.sh) trains the autoencoder (only used in QueST and VQ-BeT), [main.sh](scripts/quest/main.sh) trains the main algorithm (skill-prior in the case of QueST), and [finetune.sh](scripts/quest/finetune.sh) finetunes the model on downstream tasks.
 
 Run the following command to train QueST's stage-0 i.e. the autoencoder. (ref: [autoencoder.sh](scripts/quest/autoencoder.sh))
 
-```
+```Shell
 python train.py --config-name=train_autoencoder.yaml \
     task=libero_90 \
     algo=quest \
@@ -79,7 +83,7 @@ The above command trains the autoencoder on the libero-90 dataset with a block s
 
 Run the following command to train QueST's stage-1 i.e. the skill-prior. (ref: [main.sh](scripts/quest/main.sh))
 
-```
+```Shell
 python train.py --config-name=train_prior.yaml \
     task=libero_90 \
     algo=quest \
@@ -95,7 +99,7 @@ Here, training.auto_continue will automatically load the latest checkpoint from 
 
 Run the following command to finetune QueST on a downstream tasks. (ref: [finetune.sh](scripts/quest/finetune.sh))
 
-```
+```Shell
 python train.py --config-name=train_fewshot.yaml \
     task=libero_long_fewshot \
     algo=quest \
@@ -116,7 +120,7 @@ For metaworld fewshot, set task=metaworld_ml45_prise_fewshot and algo.l1_loss_sc
 
 Run the following command to evaluate the trained model. (ref: [eval.sh](scripts/eval.sh))
 
-```
+```Shell
 python evaluate.py \
     task=libero_90 \
     algo=quest \
@@ -133,7 +137,7 @@ This will automatically load the latest checkpoint as per your exp_name, variant
 
 If you find this work useful, please consider citing:
 
-```
+```bibtex
 @misc{mete2024questselfsupervisedskillabstractions,
       title={QueST: Self-Supervised Skill Abstractions for Learning Continuous Control},
       author={Atharva Mete and Haotian Xue and Albert Wilcox and Yongxin Chen and Animesh Garg},

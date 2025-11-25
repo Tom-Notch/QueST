@@ -58,6 +58,7 @@ rollout:
 logging:
     group:
     mode: online # set logging.mode=disabled to disable wandb
+    entity: akirscht-carnegie-mellon-university
     project: quest # TODO: change this to your wandb project name
     resume: true
     save_code: true
