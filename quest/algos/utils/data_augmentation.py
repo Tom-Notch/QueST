@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+import einops
 import numpy as np
 import torch
 import torch.nn as nn
@@ -5,7 +7,6 @@ import torch.nn.functional as F
 import torchvision
 
 from quest.algos.utils.obs_core import CropRandomizer
-import einops
 
 
 class IdentityAug(nn.Module):
@@ -31,7 +32,7 @@ class TranslationAug(nn.Module):
         self.randomizers = {}
         self.shape_meta = shape_meta
 
-        for name, input_shape in shape_meta['observation']['rgb'].items():
+        for name, input_shape in shape_meta["observation"]["rgb"].items():
             input_shape = tuple(input_shape)
 
             self.pad_translation = translation // 2
@@ -51,8 +52,8 @@ class TranslationAug(nn.Module):
     def forward(self, data):
         if self.training:
 
-            for name in self.shape_meta['observation']['rgb']:
-                obs_data = data['obs']
+            for name in self.shape_meta["observation"]["rgb"]:
+                obs_data = data["obs"]
                 x = obs_data[name]
 
                 batch_size, temporal_len, img_c, img_h, img_w = x.shape
@@ -64,7 +65,7 @@ class TranslationAug(nn.Module):
                 out = F.pad(x, pad=(self.pad_translation,) * 4, mode="replicate")
                 out = crop_randomizer.forward_in(out)
                 out = out.reshape(batch_size, temporal_len, img_c, img_h, img_w)
-                
+
                 obs_data[name] = out
         return data
 
@@ -92,8 +93,8 @@ class ImgColorJitterAug(torch.nn.Module):
 
     def forward(self, data):
         if self.training and np.random.rand() > self.epsilon:
-            for name in self.shape_meta['observation']['rgb']:
-                data['obs'][name] = self.color_jitter(data['obs'][name])
+            for name in self.shape_meta["observation"]["rgb"]:
+                data["obs"][name] = self.color_jitter(data["obs"][name])
         return data
 
 
@@ -152,15 +153,20 @@ class BatchWiseImgColorJitterAug(torch.nn.Module):
 
     def forward(self, data):
         if self.training:
-            for name in self.shape_meta['observation']['rgb']:
-                x = data['obs'][name]
-                mask = torch.rand((x.shape[0], *(1,)*(len(x.shape)-1)), device=x.device) > self.epsilon
-                
+            for name in self.shape_meta["observation"]["rgb"]:
+                x = data["obs"][name]
+                mask = (
+                    torch.rand(
+                        (x.shape[0], *(1,) * (len(x.shape) - 1)), device=x.device
+                    )
+                    > self.epsilon
+                )
+
                 jittered = self.color_jitter(x)
 
                 out = mask * jittered + torch.logical_not(mask) * x
-                data['obs'][name] = out
-                
+                data["obs"][name] = out
+
         return data
 
 
@@ -176,4 +182,3 @@ class DataAugGroup(nn.Module):
 
     def forward(self, data):
         return self.aug_layer(data)
-    

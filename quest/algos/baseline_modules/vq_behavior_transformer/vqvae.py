@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
+import einops
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch import jit
-import numpy as np
-import einops
-from quest.algos.baseline_modules.vector_quantize_pytorch_bet.residual_vq import ResidualVQ
+
+from quest.algos.baseline_modules.vector_quantize_pytorch_bet.residual_vq import (
+    ResidualVQ,
+)
+
 
 class EncoderMLP(nn.Module):
     def __init__(
@@ -83,17 +88,29 @@ class VqVae(nn.Module):
 
         if self.input_dim_h == 1:
             self.encoder = EncoderMLP(
-                input_dim=input_dim_w, hidden_dim=self.hidden_dim, layer_num=self.num_layers, output_dim=n_latent_dims
+                input_dim=input_dim_w,
+                hidden_dim=self.hidden_dim,
+                layer_num=self.num_layers,
+                output_dim=n_latent_dims,
             ).to(self.device)
             self.decoder = EncoderMLP(
-                input_dim=n_latent_dims, hidden_dim=self.hidden_dim, layer_num=self.num_layers, output_dim=input_dim_w
+                input_dim=n_latent_dims,
+                hidden_dim=self.hidden_dim,
+                layer_num=self.num_layers,
+                output_dim=input_dim_w,
             ).to(self.device)
         else:
             self.encoder = EncoderMLP(
-                input_dim=input_dim_w * self.input_dim_h, hidden_dim=self.hidden_dim, layer_num=self.num_layers, output_dim=n_latent_dims
+                input_dim=input_dim_w * self.input_dim_h,
+                hidden_dim=self.hidden_dim,
+                layer_num=self.num_layers,
+                output_dim=n_latent_dims,
             ).to(self.device)
             self.decoder = EncoderMLP(
-                input_dim=n_latent_dims, hidden_dim=self.hidden_dim, layer_num=self.num_layers, output_dim=input_dim_w * self.input_dim_h
+                input_dim=n_latent_dims,
+                hidden_dim=self.hidden_dim,
+                layer_num=self.num_layers,
+                output_dim=input_dim_w * self.input_dim_h,
             ).to(self.device)
 
         # params = (
@@ -184,10 +201,15 @@ class VqVae(nn.Module):
         dec_out = self.decoder(state_vq)
         encoder_loss = (state - dec_out).abs().mean()
         rep_loss = encoder_loss * self.encoder_loss_multiplier + (vq_loss_state * 5)
-        pp = len(torch.unique(vq_code))/1024
+        pp = len(torch.unique(vq_code)) / 1024
 
-        return dec_out, rep_loss, encoder_loss.clone().detach(), vq_loss_state.clone().detach(), pp
-        
+        return (
+            dec_out,
+            rep_loss,
+            encoder_loss.clone().detach(),
+            vq_loss_state.clone().detach(),
+            pp,
+        )
 
     # def state_dict(self):
     #     return {

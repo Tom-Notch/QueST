@@ -1,5 +1,9 @@
+#!/usr/bin/env python3
+from typing import Callable
+from typing import List
+from typing import Optional
+
 import torch
-from typing import Callable, List, Optional
 
 
 class MLP(torch.nn.Sequential):

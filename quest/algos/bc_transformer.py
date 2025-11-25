@@ -1,21 +1,24 @@
+#!/usr/bin/env python3
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import quest.utils.tensor_utils as TensorUtils
-from quest.utils.utils import map_tensor_to_device
+
 import quest.utils.obs_utils as ObsUtils
+import quest.utils.tensor_utils as TensorUtils
 from quest.algos.base import Policy
+from quest.utils.utils import map_tensor_to_device
+
 
 class BCTransformerPolicy(Policy):
     def __init__(
-            self, 
-            transformer_model,
-            policy_head,
-            positional_encoding,
-            loss_reduction,
-            **kwargs
-            ):
-        super().__init__(**kwargs) 
+        self,
+        transformer_model,
+        policy_head,
+        positional_encoding,
+        loss_reduction,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
         self.temporal_transformer = transformer_model.to(self.device)
         self.policy_head = policy_head.to(self.device)
         self.temporal_position_encoding_fn = positional_encoding.to(self.device)
@@ -33,7 +36,7 @@ class BCTransformerPolicy(Policy):
         return x[:, :, 0]  # (B, T, E)
 
     def spatial_encode(self, data):
-        obs_emb = self.obs_encode(data) # (B, T, num_mod, E)
+        obs_emb = self.obs_encode(data)  # (B, T, num_mod, E)
         text_emb = self.get_task_emb(data)  # (B, E)
         B, T, num_mod, E = obs_emb.shape
         text_emb = text_emb.view(B, 1, 1, -1).expand(-1, T, 1, -1)
@@ -51,10 +54,10 @@ class BCTransformerPolicy(Policy):
         dist = self.forward(data)
         loss = self.policy_head.loss_fn(dist, data["actions"], self.reduction)
         info = {
-            'loss': loss.item(),
+            "loss": loss.item(),
         }
         return loss, info
-        
+
     def sample_actions(self, batch):
         batch = self.preprocess_input(batch, train_mode=False)
         x = self.spatial_encode(batch)
@@ -62,4 +65,3 @@ class BCTransformerPolicy(Policy):
         dist = self.policy_head(x[:, -1])
         action = dist.sample().cpu().numpy()
         return action
-

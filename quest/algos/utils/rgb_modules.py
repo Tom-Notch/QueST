@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 This file contains all neural modules related to encoding the spatial
 information of obs_t, i.e., the abstracted knowledge of the current visual
@@ -10,8 +11,8 @@ import torchvision
 import torchvision.transforms as transforms
 from torchvision.models._utils import IntermediateLayerGetter
 
-
-from quest.algos.baseline_modules.act_utils.misc import NestedTensor, is_main_process
+from quest.algos.baseline_modules.act_utils.misc import is_main_process
+from quest.algos.baseline_modules.act_utils.misc import NestedTensor
 
 
 ###############################################################################
@@ -19,6 +20,7 @@ from quest.algos.baseline_modules.act_utils.misc import NestedTensor, is_main_pr
 # Modules related to encoding visual information (can conditioned on language)
 #
 ###############################################################################
+
 
 class FrozenBatchNorm2d(torch.nn.Module):
     """
@@ -38,15 +40,29 @@ class FrozenBatchNorm2d(torch.nn.Module):
         self.register_buffer("running_mean", torch.zeros(n))
         self.register_buffer("running_var", torch.ones(n))
 
-    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
-                              missing_keys, unexpected_keys, error_msgs):
-        num_batches_tracked_key = prefix + 'num_batches_tracked'
+    def _load_from_state_dict(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        num_batches_tracked_key = prefix + "num_batches_tracked"
         if num_batches_tracked_key in state_dict:
             del state_dict[num_batches_tracked_key]
 
         super(FrozenBatchNorm2d, self)._load_from_state_dict(
-            state_dict, prefix, local_metadata, strict,
-            missing_keys, unexpected_keys, error_msgs)
+            state_dict,
+            prefix,
+            local_metadata,
+            strict,
+            missing_keys,
+            unexpected_keys,
+            error_msgs,
+        )
 
     def forward(self, x):
         # move reshapes to the beginning
@@ -261,11 +277,11 @@ class ResnetEncoder(nn.Module):
                 param.requires_grad = False
 
         if pretrained:
-            self.normalizer = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                         std=[0.229, 0.224, 0.225])
+            self.normalizer = transforms.Normalize(
+                mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+            )
         else:
             self.normalizer = nn.Identity()
-                                    
 
         x = torch.zeros(1, *input_shape)
         y = self.block_4(
@@ -343,7 +359,7 @@ class DINOEncoder(nn.Module):
                 torchvision.transforms.Normalize(mean=mean, std=std),
             ]
         )
-        self.dino = torch.hub.load('facebookresearch/dinov2', 'dinov2_vits14')
+        self.dino = torch.hub.load("facebookresearch/dinov2", "dinov2_vits14")
         self.mlp_block = nn.Sequential(
             nn.Linear(384, 64),
             nn.GELU(),
@@ -353,21 +369,19 @@ class DINOEncoder(nn.Module):
         )
         self.projection = nn.Linear(384, output_size)
         self.output_shape = output_size
-    
+
         if pretrained:
             for param in self.dino.parameters():
                 param.requires_grad = False
 
     def forward(self, x, langs=None):
         x = self.preprocess(x)
-        x = self.dino(x,is_training=True)['x_norm_patchtokens']
+        x = self.dino(x, is_training=True)["x_norm_patchtokens"]
         mask = self.mlp_block(x).permute(0, 2, 1)
         mask = F.softmax(mask, dim=-1)
-        x = torch.einsum('...si,...id->...sd', mask, x)
+        x = torch.einsum("...si,...id->...sd", mask, x)
         x = self.projection(x)
         return x
 
     def output_shape(self, input_shape, shape_meta):
         return self.output_shape
-
-

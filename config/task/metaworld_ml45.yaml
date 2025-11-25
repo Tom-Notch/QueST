@@ -1,6 +1,7 @@
+---
 defaults:
-  - metaworld_base
-  - _self_
+    - metaworld_base
+    - _self_
 
 benchmark_name: ML45
 mode: train

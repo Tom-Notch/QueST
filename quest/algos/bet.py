@@ -1,18 +1,21 @@
+#!/usr/bin/env python3
 import logging
+from collections import deque
 from enum import Enum
 from pathlib import Path
-from typing import Dict, Optional, Tuple
-from collections import deque
+from typing import Dict
+from typing import Optional
+from typing import Tuple
 
 import einops
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from quest.algos.baseline_modules.vq_behavior_transformer.utils import MLP
+
 import quest.utils.tensor_utils as TensorUtils
-
-
 from quest.algos.base import ChunkPolicy
+from quest.algos.baseline_modules.vq_behavior_transformer.utils import MLP
+
 
 class BehaviorTransformer(ChunkPolicy):
     GOAL_SPEC = Enum("GOAL_SPEC", "concat stack unconditional")
@@ -28,7 +31,7 @@ class BehaviorTransformer(ChunkPolicy):
         frame_stack=10,
         skill_block_size=5,
         sequentially_select=False,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -69,7 +72,9 @@ class BehaviorTransformer(ChunkPolicy):
             hidden_channels=[
                 1024,
                 1024,
-                self._G * self._C * (self.shape_meta.action_dim * self.skill_block_size),
+                self._G
+                * self._C
+                * (self.shape_meta.action_dim * self.skill_block_size),
             ],
         )
 
@@ -82,20 +87,23 @@ class BehaviorTransformer(ChunkPolicy):
             return self.compute_prior_loss(data)
 
     def compute_autoencoder_loss(self, data):
-        action_input = data["actions"][:, :self.skill_block_size, :]
+        action_input = data["actions"][:, : self.skill_block_size, :]
         pred, total_loss, l1_loss, codebook_loss, pp = self.autoencoder(action_input)
         info = {
-            'recon_loss': l1_loss.item(), 
-            'codebook_loss': codebook_loss.item(), 
-            'pp': pp}
+            "recon_loss": l1_loss.item(),
+            "codebook_loss": codebook_loss.item(),
+            "pp": pp,
+        }
         return total_loss, info
-    
+
     def compute_prior_loss(self, data):
         data = self.preprocess_input(data)
 
         context = self.get_context(data)
-        predicted_action, decoded_action, sampled_centers, logit_info = self._predict(context)
-        action_seq = data['actions']
+        predicted_action, decoded_action, sampled_centers, logit_info = self._predict(
+            context
+        )
+        action_seq = data["actions"]
         n, total_w, act_dim = action_seq.shape
         act_w = self.autoencoder.input_dim_h
         obs_w = total_w + 1 - act_w
@@ -117,17 +125,13 @@ class BehaviorTransformer(ChunkPolicy):
         offset_loss = torch.nn.L1Loss()(action_seq, predicted_action)
 
         action_diff = F.mse_loss(
-            einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[
-                :, -1, 0, :
-            ],
+            einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[:, -1, 0, :],
             einops.rearrange(predicted_action, "(N T) W A -> N T W A", T=obs_w)[
                 :, -1, 0, :
             ],
         )  # batch, time, windowsize (t ... t+N), action dim -> [:, -1, 0, :] is for rollout
         action_diff_tot = F.mse_loss(
-            einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[
-                :, -1, :, :
-            ],
+            einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[:, -1, :, :],
             einops.rearrange(predicted_action, "(N T) W A -> N T W A", T=obs_w)[
                 :, -1, :, :
             ],
@@ -147,9 +151,9 @@ class BehaviorTransformer(ChunkPolicy):
                 einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[
                     :, -1, 0, :
                 ]
-                - einops.rearrange(
-                    predicted_action, "(N T) W A -> N T W A", T=obs_w
-                )[:, -1, 0, :]
+                - einops.rearrange(predicted_action, "(N T) W A -> N T W A", T=obs_w)[
+                    :, -1, 0, :
+                ]
             )
         ).mean()
         action_diff_max = (
@@ -157,9 +161,9 @@ class BehaviorTransformer(ChunkPolicy):
                 einops.rearrange(action_seq, "(N T) W A -> N T W A", T=obs_w)[
                     :, -1, 0, :
                 ]
-                - einops.rearrange(
-                    predicted_action, "(N T) W A -> N T W A", T=obs_w
-                )[:, -1, 0, :]
+                - einops.rearrange(predicted_action, "(N T) W A -> N T W A", T=obs_w)[
+                    :, -1, 0, :
+                ]
             )
         ).max()
 
@@ -222,9 +226,7 @@ class BehaviorTransformer(ChunkPolicy):
         }
         return loss, info
 
-    def _predict(
-        self,
-        gpt_input):
+    def _predict(self, gpt_input):
 
         gpt_output = self.policy_prior(gpt_input)
 
@@ -299,11 +301,18 @@ class BehaviorTransformer(ChunkPolicy):
             .clone()
             .detach()
         )  # NT, A
-        sampled_offsets = einops.rearrange(sampled_offsets, "NT (W A) -> NT W A", W=self.autoencoder.input_dim_h)
+        sampled_offsets = einops.rearrange(
+            sampled_offsets, "NT (W A) -> NT W A", W=self.autoencoder.input_dim_h
+        )
         predicted_action = decoded_action + sampled_offsets
 
         if self.sequentially_select:
-            return predicted_action, decoded_action, sampled_centers, (cbet_logits1, gpt_output)
+            return (
+                predicted_action,
+                decoded_action,
+                sampled_centers,
+                (cbet_logits1, gpt_output),
+            )
         return predicted_action, decoded_action, sampled_centers, cbet_logits
 
     def get_optimizers(self):
@@ -311,26 +320,28 @@ class BehaviorTransformer(ChunkPolicy):
             decay, no_decay = TensorUtils.separate_no_decay(self.autoencoder)
             optimizers = [
                 self.optimizer_factory(params=decay),
-                self.optimizer_factory(params=no_decay, weight_decay=0.)
+                self.optimizer_factory(params=no_decay, weight_decay=0.0),
             ]
             return optimizers
         elif self.stage == 1:
-            decay, no_decay = TensorUtils.separate_no_decay(self, 
-                                                            name_blacklist=('autoencoder',))
+            decay, no_decay = TensorUtils.separate_no_decay(
+                self, name_blacklist=("autoencoder",)
+            )
             optimizers = [
                 self.optimizer_factory(params=decay),
-                self.optimizer_factory(params=no_decay, weight_decay=0.)
+                self.optimizer_factory(params=no_decay, weight_decay=0.0),
             ]
             return optimizers
         elif self.stage == 2:
-            decay, no_decay = TensorUtils.separate_no_decay(self, 
-                                                            name_blacklist=('autoencoder',))
+            decay, no_decay = TensorUtils.separate_no_decay(
+                self, name_blacklist=("autoencoder",)
+            )
             optimizers = [
                 self.optimizer_factory(params=decay),
-                self.optimizer_factory(params=no_decay, weight_decay=0.)
+                self.optimizer_factory(params=no_decay, weight_decay=0.0),
             ]
             return optimizers
-    
+
     def sample_actions(self, data):
         data = self.preprocess_input(data, train_mode=False)
 
@@ -338,8 +349,10 @@ class BehaviorTransformer(ChunkPolicy):
         # breakpoint()
         predicted_act, _, _, _ = self._predict(context)
 
-        predicted_act = einops.rearrange(predicted_act, "(N T) W A -> N T W A", T=self.frame_stack)[:, -1, :, :]
-        predicted_act = predicted_act.permute(1,0,2)
+        predicted_act = einops.rearrange(
+            predicted_act, "(N T) W A -> N T W A", T=self.frame_stack
+        )[:, -1, :, :]
+        predicted_act = predicted_act.permute(1, 0, 2)
         return predicted_act.detach().cpu().numpy()
 
     def get_context(self, data):

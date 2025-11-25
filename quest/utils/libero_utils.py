@@ -1,21 +1,25 @@
+#!/usr/bin/env python3
 import copy
-
-# import gym.spaces
-# import gym.wrappers
-import gymnasium
-from collections import OrderedDict, deque
 import os
+from collections import deque
+from collections import OrderedDict
+
+import gymnasium
 import numpy as np
+import torch
+import torch.nn as nn
+from PIL import Image
+from torch.utils.data import ConcatDataset
+from torch.utils.data import Dataset
+
 import quest.utils.file_utils as FileUtils
 import quest.utils.obs_utils as ObsUtils
 import quest.utils.utils as utils
-from PIL import Image
 from quest.utils.dataset import SequenceDataset
-from torch.utils.data import Dataset
 from quest.utils.frame_stack import FrameStackObservationFixed
-import torch
-import torch.nn as nn
-from torch.utils.data import ConcatDataset
+
+# import gym.spaces
+# import gym.wrappers
 # import gym
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 from libero.libero.benchmark import get_benchmark
@@ -32,13 +36,12 @@ import robosuite.utils.transform_utils as T
 import h5py
 from gymnasium.vector.utils import batch_space
 from tqdm import trange
+
 np.set_printoptions(suppress=True)
 
 
 class LiberoVectorWrapper(gymnasium.Env):
-    def __init__(self,
-                 env_factory,
-                 env_num):
+    def __init__(self, env_factory, env_num):
         env_creation, count = False, 0
         while not env_creation and count < 5:
             try:
@@ -62,12 +65,12 @@ class LiberoVectorWrapper(gymnasium.Env):
         obs = self.process_obs(obs)
         self._env.set_init_state(init_states)
         return obs, info
-    
+
     def step(self, *args, **kwargs):
         obs, reward, terminated, truncated, info = self._env.step(*args, **kwargs)
         obs = self.process_obs(obs)
         return obs, reward, terminated, truncated, info
-    
+
     def render(self, *args, **kwargs):
         return self._env.render(*args, **kwargs)
 
@@ -88,20 +91,22 @@ class LiberoFrameStack(FrameStackObservationFixed):
 
 
 class LiberoWrapper(gymnasium.Env):
-    def __init__(self,
-                 task_id,
-                 benchmark,
-                 shape_meta,
-                 obs_key_mapping,
-                 img_height=128,
-                 img_width=128,
-                 cameras=('agentview', 'robot0_eye_in_hand'),
-                 device="cuda",):
+    def __init__(
+        self,
+        task_id,
+        benchmark,
+        shape_meta,
+        obs_key_mapping,
+        img_height=128,
+        img_width=128,
+        cameras=("agentview", "robot0_eye_in_hand"),
+        device="cuda",
+    ):
         self.img_width = img_width
         self.img_height = img_height
-        obs_meta = shape_meta['observation']
-        self.rgb_outputs = list(obs_meta['rgb'])
-        self.lowdim_outputs = list(obs_meta['lowdim'])
+        obs_meta = shape_meta["observation"]
+        self.rgb_outputs = list(obs_meta["rgb"])
+        self.lowdim_outputs = list(obs_meta["lowdim"])
         self.cameras = cameras
         self.obs_key_mapping = obs_key_mapping
 
@@ -110,7 +115,7 @@ class LiberoWrapper(gymnasium.Env):
             "bddl_file_name": benchmark.get_task_bddl_file_path(task_id),
             "camera_heights": img_height,
             "camera_widths": img_width,
-            'camera_names': cameras
+            "camera_names": cameras,
         }
 
         env = OffScreenRenderEnv(**env_args)
@@ -119,20 +124,19 @@ class LiberoWrapper(gymnasium.Env):
         obs_space_dict = {}
         for key in self.rgb_outputs:
             obs_space_dict[key] = gymnasium.spaces.Box(
-                low=0,
-                high=255,
-                shape=(img_height, img_width, 3),
-                dtype=np.uint8
+                low=0, high=255, shape=(img_height, img_width, 3), dtype=np.uint8
             )
         for key in self.lowdim_outputs:
             obs_space_dict[key] = gymnasium.spaces.Box(
                 low=-np.inf,
                 high=np.inf,
-                shape=(obs_meta['lowdim'][key],),
-                dtype=np.float32
+                shape=(obs_meta["lowdim"][key],),
+                dtype=np.float32,
             )
         self.observation_space = gymnasium.spaces.Dict(obs_space_dict)
-        self.action_space = gymnasium.spaces.Box(low=-1, high=1, shape=(7,), dtype=np.float32)
+        self.action_space = gymnasium.spaces.Box(
+            low=-1, high=1, shape=(7,), dtype=np.float32
+        )
         self.render_out = None
 
     def reset(self, init_states=None, **kwargs):
@@ -148,52 +152,58 @@ class LiberoWrapper(gymnasium.Env):
     def step(self, action):
         raw_obs, reward, truncated, info = self.env.step(action)
         obs = self.make_obs(raw_obs)
-        info['success'] = self.env.check_success()
-        terminated = info['success']
+        info["success"] = self.env.check_success()
+        terminated = info["success"]
         return obs, reward, terminated, truncated, info
-    
+
     def set_init_state(self, *args, **kwargs):
         self.env.set_init_state(*args, **kwargs)
 
     def make_obs(self, raw_obs):
         obs = {}
-        self.render_out = raw_obs[f'{self.cameras[0]}_image'][::-1]
+        self.render_out = raw_obs[f"{self.cameras[0]}_image"][::-1]
 
         for key in self.rgb_outputs:
             obs[key] = raw_obs[self.obs_key_mapping[key]]
 
         for key in self.lowdim_outputs:
             obs[key] = raw_obs[self.obs_key_mapping[key]]
-        
+
         return obs
-    
+
     def render(self, *args, **kwargs):
         return self.render_out
 
-def build_dataset(data_prefix,
-                  suite_name,
-                  benchmark_name, 
-                  mode, 
-                  seq_len, 
-                  frame_stack,
-                  shape_meta,
-                  n_demos,
-                  extra_obs_modality=None,
-                  obs_seq_len=1, 
-                  load_obs=True,
-                  task_embedding_format="clip",
-                  ):
+
+def build_dataset(
+    data_prefix,
+    suite_name,
+    benchmark_name,
+    mode,
+    seq_len,
+    frame_stack,
+    shape_meta,
+    n_demos,
+    extra_obs_modality=None,
+    obs_seq_len=1,
+    load_obs=True,
+    task_embedding_format="clip",
+):
     benchmark = get_benchmark(benchmark_name)()
     n_tasks = benchmark.n_tasks
-    few_shot_demos = np.linspace(0, 49, n_demos, dtype=int).tolist() if mode == 'fewshot' else None
-    few_shot_demos_list = [f"demo_{i}" for i in few_shot_demos] if few_shot_demos is not None else None
-    
+    few_shot_demos = (
+        np.linspace(0, 49, n_demos, dtype=int).tolist() if mode == "fewshot" else None
+    )
+    few_shot_demos_list = (
+        [f"demo_{i}" for i in few_shot_demos] if few_shot_demos is not None else None
+    )
+
     manip_datasets = []
     descriptions = []
     # for key, value in shape_meta
     obs_modality = {
-        'rgb': list(shape_meta['observation']['rgb'].keys()),
-        'low_dim': list(shape_meta['observation']['lowdim'].keys()),
+        "rgb": list(shape_meta["observation"]["rgb"].keys()),
+        "low_dim": list(shape_meta["observation"]["lowdim"].keys()),
     }
     if extra_obs_modality is not None:
         for key in extra_obs_modality:
@@ -210,7 +220,7 @@ def build_dataset(data_prefix,
             obs_seq_len=obs_seq_len,
             frame_stack=frame_stack,
             load_obs=load_obs,
-            few_demos = few_shot_demos_list,
+            few_demos=few_shot_demos_list,
             n_demos=n_demos,
         )
         task_description = benchmark.get_task(i).language
@@ -219,7 +229,8 @@ def build_dataset(data_prefix,
     task_embs = get_task_embs(task_embedding_format, descriptions)
     benchmark.set_task_embs(task_embs)
     datasets = [
-        SequenceVLDataset(ds, emb, i) for i,(ds, emb) in enumerate(zip(manip_datasets, task_embs))
+        SequenceVLDataset(ds, emb, i)
+        for i, (ds, emb) in enumerate(zip(manip_datasets, task_embs))
     ]
     n_demos = [data.n_demos for data in datasets]
     n_sequences = [data.total_num_sequences for data in datasets]
@@ -232,6 +243,7 @@ def build_dataset(data_prefix,
     print("=======================================================================\n")
     return concat_dataset
 
+
 def get_dataset(
     dataset_path,
     obs_modality,
@@ -243,7 +255,7 @@ def get_dataset(
     load_obs=True,
     few_demos=None,
     n_demos=None,
-    ):
+):
     all_obs_keys = []
     for modality_name, modality_list in obs_modality.items():
         all_obs_keys += modality_list
@@ -277,6 +289,7 @@ def get_dataset(
     )
     return dataset
 
+
 class SequenceVLDataset(Dataset):
     def __init__(self, sequence_dataset, task_emb, task_id):
         self.sequence_dataset = sequence_dataset
@@ -293,6 +306,7 @@ class SequenceVLDataset(Dataset):
         return_dict["task_emb"] = self.task_emb
         return_dict["task_id"] = self.task_id
         return return_dict
+
 
 def get_task_embs(task_embedding_format, descriptions):
     logging.set_verbosity_error()
@@ -330,7 +344,9 @@ def get_task_embs(task_embedding_format, descriptions):
         )
         task_embs = model(**tokens)["last_hidden_state"].detach()[:, -1]
     elif task_embedding_format == "clip":
-        tz = AutoTokenizer.from_pretrained("openai/clip-vit-base-patch32", clean_up_tokenization_spaces=True)
+        tz = AutoTokenizer.from_pretrained(
+            "openai/clip-vit-base-patch32", clean_up_tokenization_spaces=True
+        )
         model = AutoModel.from_pretrained("openai/clip-vit-base-patch32")
         tokens = tz(
             text=descriptions,  # the sentence to be encoded
@@ -355,4 +371,3 @@ def get_task_embs(task_embedding_format, descriptions):
         )
         task_embs = model(**tokens)["pooler_output"].detach()
     return task_embs
-

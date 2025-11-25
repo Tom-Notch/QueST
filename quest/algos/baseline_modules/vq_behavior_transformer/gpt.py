@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 An adaptation of Andrej Karpathy's nanoGPT implementation in PyTorch.
 Original source: https://github.com/karpathy/nanoGPT
@@ -33,7 +34,6 @@ https://github.com/openai/gpt-2/blob/master/src/model.py
 2) huggingface/transformers PyTorch implementation:
 https://github.com/huggingface/transformers/blob/main/src/transformers/models/gpt2/modeling_gpt2.py
 """
-
 import math
 from dataclasses import dataclass
 
@@ -154,14 +154,16 @@ class GPTConfig:
 
 
 class GPT(nn.Module):
-    def __init__(self, 
-                 block_size: int = 1024,
-                 input_dim: int = 256,
-                 output_dim: int = 256,
-                 n_layer: int = 12,
-                 n_head: int = 12,
-                 n_embd: int = 768,
-                 dropout: float = 0.1):
+    def __init__(
+        self,
+        block_size: int = 1024,
+        input_dim: int = 256,
+        output_dim: int = 256,
+        n_layer: int = 12,
+        n_head: int = 12,
+        n_embd: int = 768,
+        dropout: float = 0.1,
+    ):
         super().__init__()
         assert input_dim is not None
         assert output_dim is not None
@@ -176,7 +178,9 @@ class GPT(nn.Module):
                 wte=nn.Linear(input_dim, n_embd),
                 wpe=nn.Embedding(block_size, n_embd),
                 drop=nn.Dropout(dropout),
-                h=nn.ModuleList([Block(n_embd, n_head, dropout, block_size) for _ in range(n_layer)]),
+                h=nn.ModuleList(
+                    [Block(n_embd, n_head, dropout, block_size) for _ in range(n_layer)]
+                ),
                 ln_f=nn.LayerNorm(n_embd),
             )
         )
@@ -185,9 +189,7 @@ class GPT(nn.Module):
         self.apply(self._init_weights)
         for pn, p in self.named_parameters():
             if pn.endswith("c_proj.weight"):
-                torch.nn.init.normal_(
-                    p, mean=0.0, std=0.02 / math.sqrt(2 * n_layer)
-                )
+                torch.nn.init.normal_(p, mean=0.0, std=0.02 / math.sqrt(2 * n_layer))
 
         # report number of parameters
         n_params = sum(p.numel() for p in self.parameters())
@@ -267,13 +269,13 @@ class GPT(nn.Module):
         param_dict = {pn: p for pn, p in self.named_parameters()}
         inter_params = decay & no_decay
         union_params = decay | no_decay
-        assert len(inter_params) == 0, (
-            "parameters %s made it into both decay/no_decay sets!"
-            % (str(inter_params),)
-        )
-        assert len(param_dict.keys() - union_params) == 0, (
-            "parameters %s were not separated into either decay/no_decay set!"
-            % (str(param_dict.keys() - union_params),)
+        assert (
+            len(inter_params) == 0
+        ), "parameters %s made it into both decay/no_decay sets!" % (str(inter_params),)
+        assert (
+            len(param_dict.keys() - union_params) == 0
+        ), "parameters %s were not separated into either decay/no_decay set!" % (
+            str(param_dict.keys() - union_params),
         )
 
         # create the pytorch optimizer object

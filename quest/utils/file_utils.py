@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 A collection of utility functions for working with files, such as reading metadata from
 demonstration datasets, loading model checkpoints, or downloading dataset files.
@@ -6,8 +7,9 @@ This file is adopted from robomimic
 https://github.com/ARISE-Initiative/robomimic/blob/master/robomimic/utils/file_utils.py
 """
 import os
-import h5py
 from collections import OrderedDict
+
+import h5py
 
 import quest.utils.obs_utils as ObsUtils
 
@@ -41,7 +43,7 @@ def get_shape_metadata_from_dataset(dataset_path, all_obs_keys=None, verbose=Fal
     demo = f["data/{}".format(demo_id)]
 
     # action dimension
-    shape_meta['ac_dim'] = f["data/{}/actions".format(demo_id)].shape[1]
+    shape_meta["ac_dim"] = f["data/{}/actions".format(demo_id)].shape[1]
 
     # observation dimensions
     all_shapes = OrderedDict()
@@ -62,9 +64,9 @@ def get_shape_metadata_from_dataset(dataset_path, all_obs_keys=None, verbose=Fal
 
     f.close()
 
-    shape_meta['all_shapes'] = all_shapes
-    shape_meta['all_obs_keys'] = all_obs_keys
-    shape_meta['use_images'] = ObsUtils.has_modality("rgb", all_obs_keys)
-    shape_meta['use_depths'] = ObsUtils.has_modality("depth", all_obs_keys)
+    shape_meta["all_shapes"] = all_shapes
+    shape_meta["all_obs_keys"] = all_obs_keys
+    shape_meta["use_images"] = ObsUtils.has_modality("rgb", all_obs_keys)
+    shape_meta["use_depths"] = ObsUtils.has_modality("depth", all_obs_keys)
 
     return shape_meta

@@ -1,3 +1,4 @@
+---
 # I don't rember if this works
 _target_: quest.algos.utils.rgb_modules.ACTEncoder
 _partial_: true

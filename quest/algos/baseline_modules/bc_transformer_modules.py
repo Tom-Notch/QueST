@@ -1,13 +1,16 @@
+#!/usr/bin/env python3
 import math
-import numpy as np
-from torch import nn
-import torch
-import torchvision
-import torch.nn.functional as F
-import torch.distributions as D
 
-from einops import rearrange, repeat
+import numpy as np
+import torch
+import torch.distributions as D
+import torch.nn.functional as F
+import torchvision
+from einops import rearrange
+from einops import repeat
 from einops.layers.torch import Rearrange
+from torch import nn
+
 import quest.utils.tensor_utils as TensorUtils
 
 
@@ -170,7 +173,7 @@ class TransformerDecoder(nn.Module):
         head_output_size,
         mlp_hidden_size,
         dropout,
-        **kwargs
+        **kwargs,
     ):
         super().__init__()
 
