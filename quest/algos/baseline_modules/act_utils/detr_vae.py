@@ -8,9 +8,10 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 
-from quest.algos.baseline_modules.act_utils.transformer import build_transformer
-from quest.algos.baseline_modules.act_utils.transformer import TransformerEncoder
-from quest.algos.baseline_modules.act_utils.transformer import TransformerEncoderLayer
+from quest.algos.baseline_modules.act_utils.transformer import (
+    TransformerEncoder,
+    TransformerEncoderLayer,
+)
 
 
 def reparametrize(mu, logvar):

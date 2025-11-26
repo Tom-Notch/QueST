@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
-import copy
 import os
-from collections import deque
-from collections import OrderedDict
 
 import gymnasium
 import numpy as np
-import torch
-import torch.nn as nn
-from PIL import Image
-from torch.utils.data import ConcatDataset
-from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset, Dataset
 
 import quest.utils.file_utils as FileUtils
 import quest.utils.obs_utils as ObsUtils
-import quest.utils.utils as utils
 from quest.utils.dataset import SequenceDataset
 from quest.utils.frame_stack import FrameStackObservationFixed
 
@@ -22,20 +14,14 @@ from quest.utils.frame_stack import FrameStackObservationFixed
 # import gym.wrappers
 # import gym
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-from libero.libero.benchmark import get_benchmark
-from transformers import AutoModel, AutoTokenizer, logging
-from hydra.utils import to_absolute_path
 import time
-from libero.libero import get_libero_path
-from libero.libero.envs import OffScreenRenderEnv, SubprocVectorEnv, DummyVectorEnv
-from libero.libero.utils.time_utils import Timer
-import multiprocessing
-import math
-import matplotlib.pyplot as plt
-import robosuite.utils.transform_utils as T
-import h5py
+
 from gymnasium.vector.utils import batch_space
+from hydra.utils import to_absolute_path
+from libero.libero.benchmark import get_benchmark
+from libero.libero.envs import DummyVectorEnv, OffScreenRenderEnv, SubprocVectorEnv
 from tqdm import trange
+from transformers import AutoModel, AutoTokenizer, logging
 
 np.set_printoptions(suppress=True)
 
@@ -325,8 +311,8 @@ def get_task_embs(task_embedding_format, descriptions):
             return_attention_mask=True,  # Generate the attention mask
             return_tensors="pt",  # ask the function to return PyTorch tensors
         )
-        masks = tokens["attention_mask"]
-        input_ids = tokens["input_ids"]
+        tokens["attention_mask"]
+        tokens["input_ids"]
         task_embs = model(tokens["input_ids"], tokens["attention_mask"])[
             "pooler_output"
         ].detach()

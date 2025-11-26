@@ -9,13 +9,11 @@ Copy-paste from torch.nn.Transformer with modifications:
     * decoder returns a stack of activations from all decoding layers
 """
 import copy
-from typing import List
 from typing import Optional
 
 import torch
 import torch.nn.functional as F
-from torch import nn
-from torch import Tensor
+from torch import Tensor, nn
 
 # import IPython
 # e = IPython.embed

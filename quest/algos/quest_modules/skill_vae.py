@@ -2,13 +2,9 @@
 import numpy as np
 import torch
 from einops.layers.torch import Rearrange
-from positional_encodings.torch_encodings import PositionalEncoding1D
-from positional_encodings.torch_encodings import Summer
+from positional_encodings.torch_encodings import PositionalEncoding1D, Summer
 from torch import nn
-from torch.nn import functional as F
-from vector_quantize_pytorch import FSQ
-from vector_quantize_pytorch import VectorQuantize
-
+from vector_quantize_pytorch import FSQ, VectorQuantize
 
 ###############################################################################
 #

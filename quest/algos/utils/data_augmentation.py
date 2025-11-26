@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import einops
 import numpy as np
 import torch
 import torch.nn as nn

@@ -6,10 +6,7 @@ from random import randrange
 
 import torch
 import torch.nn.functional as F
-from einops import pack
-from einops import rearrange
-from einops import repeat
-from einops import unpack
+from einops import pack, rearrange, repeat, unpack
 from torch import nn
 
 from quest.algos.baseline_modules.vector_quantize_pytorch_bet.vector_quantize_pytorch_bet import (

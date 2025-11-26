@@ -7,7 +7,6 @@ import wandb
 from tqdm import tqdm
 
 import quest.utils.libero_utils as lu
-import quest.utils.obs_utils as ObsUtils
 
 
 class LiberoRunner:

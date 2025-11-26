@@ -5,13 +5,8 @@ from typing import Callable
 import torch
 import torch.distributed as distributed
 import torch.nn.functional as F
-from einops import pack
-from einops import rearrange
-from einops import reduce
-from einops import repeat
-from einops import unpack
-from torch import einsum
-from torch import nn
+from einops import pack, rearrange, reduce, repeat, unpack
+from torch import einsum, nn
 from torch.cuda.amp import autocast
 from torch.optim import Optimizer
 
@@ -512,7 +507,7 @@ class EuclideanCodebook(nn.Module):
         if needs_codebook_dim:
             x = rearrange(x, "... -> 1 ...")
 
-        dtype = x.dtype
+        x.dtype
         flatten, ps = pack_one(x, "h * d")
 
         if exists(mask):
@@ -715,7 +710,7 @@ class CosineSimCodebook(nn.Module):
         if needs_codebook_dim:
             x = rearrange(x, "... -> 1 ...")
 
-        dtype = x.dtype
+        x.dtype
 
         flatten, ps = pack_one(x, "h * d")
 

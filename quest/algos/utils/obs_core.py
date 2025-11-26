@@ -7,16 +7,12 @@ and randomizers (e.g. Randomizer, CropRandomizer).
 This file is taken from robomimic
 """
 import abc
-import random
-import textwrap
 
-import numpy as np
 import torch
 import torch.nn as nn
 
 import quest.utils.obs_utils as ObsUtils
 import quest.utils.tensor_utils as TensorUtils
-
 
 """
 ================================================
@@ -146,7 +142,6 @@ class Randomizer(nn.Module):
         """
         Visualize the original input and the randomized input for _forward_in for debugging purposes.
         """
-        pass
 
 
 class CropRandomizer(Randomizer):

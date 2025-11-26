@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import numpy as np
 import torch
-import torchvision.transforms as transforms
 
 from quest.algos.base import ChunkPolicy
 

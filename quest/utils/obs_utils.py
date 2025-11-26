@@ -6,12 +6,10 @@ different kinds of modalities such as images.
 This file is adopted from Robomimic
 https://github.com/ARISE-Initiative/robomimic/blob/master/robomimic/utils/obs_utils.py
 """
-from collections import OrderedDict
 from copy import deepcopy
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 
 import quest.utils.tensor_utils as TU
 

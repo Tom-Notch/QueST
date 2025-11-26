@@ -10,10 +10,8 @@ import os
 import pickle
 import subprocess
 import time
-from collections import defaultdict
-from collections import deque
-from typing import List
-from typing import Optional
+from collections import defaultdict, deque
+from typing import List, Optional
 
 import torch
 import torch.distributed as dist

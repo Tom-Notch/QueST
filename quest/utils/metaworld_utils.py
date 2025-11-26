@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import copy
-import math
 import os
 from collections import OrderedDict
 
@@ -8,21 +6,15 @@ import gymnasium
 import metaworld
 import mujoco
 import numpy as np
-import torch
-import torch.nn as nn
 from gymnasium.envs.mujoco.mujoco_rendering import OffScreenViewer
 from metaworld.envs import ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE
 from metaworld.policies import *
-from PIL import Image
-from pyinstrument import Profiler
-from torch.utils.data import ConcatDataset
-from torch.utils.data import Dataset
+from torch.utils.data import ConcatDataset, Dataset
 
 import quest.utils.file_utils as FileUtils
 import quest.utils.obs_utils as ObsUtils
 from quest.utils.dataset import SequenceDataset
 from quest.utils.frame_stack import FrameStackObservationFixed
-
 
 _policies = OrderedDict(
     [

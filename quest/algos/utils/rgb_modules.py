@@ -9,11 +9,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 import torchvision.transforms as transforms
-from torchvision.models._utils import IntermediateLayerGetter
-
-from quest.algos.baseline_modules.act_utils.misc import is_main_process
-from quest.algos.baseline_modules.act_utils.misc import NestedTensor
-
 
 ###############################################################################
 #

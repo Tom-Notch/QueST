@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
-import quest.utils.obs_utils as ObsUtils
 import quest.utils.tensor_utils as TensorUtils
 from quest.algos.base import Policy
-from quest.utils.utils import map_tensor_to_device
 
 
 class BCTransformerPolicy(Policy):

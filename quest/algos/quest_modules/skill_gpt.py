@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 import torch
-from positional_encodings.torch_encodings import PositionalEncoding1D
-from positional_encodings.torch_encodings import Summer
+from positional_encodings.torch_encodings import PositionalEncoding1D, Summer
 from torch import nn
-from torch.nn import functional as F
-
-from quest.algos.utils.mlp_proj import MLPProj
 
 
 class SkillGPT(nn.Module):

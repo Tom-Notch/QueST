@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-import gc
 import os
 import time
-import warnings
-from pathlib import Path
 
 import hydra
 import torch

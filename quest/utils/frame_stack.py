@@ -7,19 +7,12 @@ from __future__ import annotations
 
 from collections import deque
 from copy import deepcopy
-from typing import Any
-from typing import Final
-from typing import SupportsFloat
+from typing import Any, Final, SupportsFloat
 
 import gymnasium as gym
 import numpy as np
-from gymnasium.core import ActType
-from gymnasium.core import ObsType
-from gymnasium.core import WrapperActType
-from gymnasium.core import WrapperObsType
-from gymnasium.vector.utils import batch_space
-from gymnasium.vector.utils import concatenate
-from gymnasium.vector.utils import create_empty_array
+from gymnasium.core import ActType, ObsType, WrapperActType, WrapperObsType
+from gymnasium.vector.utils import batch_space, concatenate, create_empty_array
 from gymnasium.wrappers.utils import create_zero_array
 
 
