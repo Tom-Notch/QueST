@@ -15,6 +15,7 @@ python train.py --config-name=train_prior.yaml \
 	algo.skill_block_size=32 \
 	algo.downsample_factor=4 \
 	training.auto_continue=true \
+	training.resume=true \
 	rollout.num_parallel_envs=5 \
 	rollout.rollouts_per_env=5 \
 	seed=0
