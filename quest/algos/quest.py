@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import itertools
+from typing import Any
 
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.optim import Optimizer
 
 import quest.utils.tensor_utils as TensorUtils
 from quest.algos.base import ChunkPolicy
@@ -11,7 +13,7 @@ from quest.algos.base import ChunkPolicy
 
 class QueST(ChunkPolicy):
     def __init__(
-        self, autoencoder, policy_prior, stage, loss_fn, l1_loss_scale, **kwargs
+        self, autoencoder, policy_prior, stage, loss_fn, l1_loss_scale: float, **kwargs
     ):
         super().__init__(**kwargs)
         self.autoencoder = autoencoder
@@ -24,14 +26,13 @@ class QueST(ChunkPolicy):
 
         self.loss = loss_fn
 
-    def get_optimizers(self):
+    def get_optimizers(self) -> list[Optimizer]:
         if self.stage == 0:
             decay, no_decay = TensorUtils.separate_no_decay(self.autoencoder)
             optimizers = [
                 self.optimizer_factory(params=decay),
                 self.optimizer_factory(params=no_decay, weight_decay=0.0),
             ]
-            return optimizers
         elif self.stage == 1:
             decay, no_decay = TensorUtils.separate_no_decay(
                 self, name_blacklist=("autoencoder",)
@@ -40,7 +41,6 @@ class QueST(ChunkPolicy):
                 self.optimizer_factory(params=decay),
                 self.optimizer_factory(params=no_decay, weight_decay=0.0),
             ]
-            return optimizers
         elif self.stage == 2:
             decay, no_decay = TensorUtils.separate_no_decay(
                 self, name_blacklist=("autoencoder",)
@@ -54,15 +54,17 @@ class QueST(ChunkPolicy):
                     params=itertools.chain(no_decay, decoder_no_decay), weight_decay=0.0
                 ),
             ]
-            return optimizers
+        return optimizers
 
-    def get_context(self, data):
+    def get_context(self, data: dict[str, Any]) -> torch.Tensor:
         obs_emb = self.obs_encode(data)
         task_emb = self.get_task_emb(data).unsqueeze(1)
         context = torch.cat([task_emb, obs_emb], dim=1)
         return context
 
-    def compute_loss(self, data):
+    def compute_loss(
+        self, data: dict[str, Any]
+    ) -> tuple[torch.Tensor, dict[str, float]]:
         if self.stage == 0:
             return self.compute_autoencoder_loss(data)
         elif self.stage == 1:
@@ -70,7 +72,9 @@ class QueST(ChunkPolicy):
         elif self.stage == 2:
             return self.compute_prior_loss(data)
 
-    def compute_autoencoder_loss(self, data):
+    def compute_autoencoder_loss(
+        self, data: dict[str, Any]
+    ) -> tuple[torch.Tensor, dict[str, float]]:
         pred, pp, pp_sample, aux_loss, _ = self.autoencoder(data["actions"])
         recon_loss = self.loss(pred, data["actions"])
         if self.autoencoder.vq_type == "vq":
@@ -87,7 +91,9 @@ class QueST(ChunkPolicy):
         }
         return loss, info
 
-    def compute_prior_loss(self, data):
+    def compute_prior_loss(
+        self, data: dict[str, Any]
+    ) -> tuple[torch.Tensor, dict[str, float]]:
         data = self.preprocess_input(data, train_mode=True)
         with torch.no_grad():
             indices = self.autoencoder.get_indices(data["actions"]).long()
@@ -117,7 +123,7 @@ class QueST(ChunkPolicy):
         }
         return total_loss, info
 
-    def sample_actions(self, data):
+    def sample_actions(self, data: dict[str, Any]) -> np.ndarray:
         data = self.preprocess_input(data, train_mode=False)
         context = self.get_context(data)
         sampled_indices = self.policy_prior.get_indices_top_k(

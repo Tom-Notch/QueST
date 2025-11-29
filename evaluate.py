@@ -24,7 +24,7 @@ def main(cfg):
 
     # create model
     save_dir, _ = utils.get_experiment_dir(cfg, evaluate=True)
-    os.makedirs(save_dir)
+    os.makedirs(save_dir, exist_ok=True)
 
     if cfg.checkpoint_path is None:
         # Basically if you don't provide a checkpoint path it will automatically find one corresponding

@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
 from collections import deque
+from typing import Any
 
 import einops
+import numpy as np
 import torch
 import torch.nn as nn
+from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
+from torch.utils.data import Dataset
 
 import quest.utils.obs_utils as ObsUtils
 import quest.utils.tensor_utils as TensorUtils
@@ -45,7 +50,7 @@ class Policy(nn.Module, ABC):
         do_lowdim = lowdim_encoder_factory is not None
 
         # observation encoders
-        self.image_encoders = {}
+        self.image_encoders: dict = {}
         if do_image and shape_meta["observation"]["rgb"] is not None:
             for name, shape in shape_meta["observation"]["rgb"].items():
                 shape_in = list(shape)
@@ -58,7 +63,7 @@ class Policy(nn.Module, ABC):
                 self.image_encoders[name] = encoder
             self.image_encoders = nn.ModuleDict(self.image_encoders)
 
-        self.lowdim_encoders = {}
+        self.lowdim_encoders: dict = {}
         if do_lowdim and shape_meta["observation"]["lowdim"] is not None:
             for name, shape in shape_meta["observation"]["lowdim"].items():
                 encoder = lowdim_encoder_factory(shape)
@@ -88,10 +93,10 @@ class Policy(nn.Module, ABC):
         self.device = device
 
     @abstractmethod
-    def compute_loss(self, data):
+    def compute_loss(self, data: dict[str, Any]):
         raise NotImplementedError("Implement in subclass")
 
-    def get_optimizers(self):
+    def get_optimizers(self) -> list[Optimizer]:
         decay, no_decay = TensorUtils.separate_no_decay(self)
         optimizers = [
             self.optimizer_factory(params=decay),
@@ -99,7 +104,7 @@ class Policy(nn.Module, ABC):
         ]
         return optimizers
 
-    def get_schedulers(self, optimizers):
+    def get_schedulers(self, optimizers: list[Optimizer]) -> list[LRScheduler]:
         if self.scheduler_factory is None:
             return []
         else:
@@ -107,7 +112,9 @@ class Policy(nn.Module, ABC):
                 self.scheduler_factory(optimizer=optimizer) for optimizer in optimizers
             ]
 
-    def preprocess_input(self, data, train_mode=True):
+    def preprocess_input(
+        self, data: dict[str, Any], train_mode: bool = True
+    ) -> dict[str, Any]:
         if train_mode and self.use_augmentation:
             data = self.aug(data)
         for key in self.image_encoders:
@@ -119,7 +126,7 @@ class Policy(nn.Module, ABC):
                     data[obs_key][key] = x
         return data
 
-    def obs_encode(self, data, hwc=False, obs_key="obs"):
+    def obs_encode(self, data: dict[str, Any], hwc: bool = False, obs_key: str = "obs"):
         ### 1. encode image
         img_encodings, lowdim_encodings = [], []
         for img_name in self.image_encoders.keys():
@@ -155,13 +162,15 @@ class Policy(nn.Module, ABC):
     def reset(self):
         return
 
-    def get_task_emb(self, data):
+    def get_task_emb(self, data: dict[str, Any]):
         if "task_emb" in data:
             return self.task_encoder(data["task_emb"])
         else:
             return self.task_encoder(data["task_id"])
 
-    def get_action(self, obs, task_id, task_emb=None):
+    def get_action(
+        self, obs: dict[str, Any], task_id: int, task_emb: torch.Tensor | None = None
+    ):
         self.eval()
         for key, value in obs.items():
             if key in self.image_encoders:
@@ -178,11 +187,11 @@ class Policy(nn.Module, ABC):
             action = self.sample_actions(batch)
         return action
 
-    def preprocess_dataset(self, dataset, use_tqdm=True):
+    def preprocess_dataset(self, dataset: Dataset, use_tqdm: bool = True):
         return
 
     @abstractmethod
-    def sample_actions(self, obs):
+    def sample_actions(self, data: dict[str, Any]) -> np.ndarray:
         raise NotImplementedError("Implement in subclass")
 
 
@@ -191,7 +200,7 @@ class ChunkPolicy(Policy):
     Super class for policies which predict chunks of actions
     """
 
-    def __init__(self, action_horizon, **kwargs):
+    def __init__(self, action_horizon: int, **kwargs):
         super().__init__(**kwargs)
 
         self.action_horizon = action_horizon
@@ -200,7 +209,9 @@ class ChunkPolicy(Policy):
     def reset(self):
         self.action_queue = deque(maxlen=self.action_horizon)
 
-    def get_action(self, obs, task_id, task_emb=None):
+    def get_action(
+        self, obs: dict[str, Any], task_id: int, task_emb: torch.Tensor | None = None
+    ):
         assert (
             self.action_queue is not None
         ), "you need to call policy.reset() before getting actions"
@@ -213,7 +224,7 @@ class ChunkPolicy(Policy):
                 elif key in self.lowdim_encoders:
                     value = TensorUtils.to_float(value)  # from double to float
                 obs[key] = torch.tensor(value)
-            batch = {}
+            batch: dict[str, Any] = {}
             batch["obs"] = obs
             if task_emb is not None:
                 batch["task_emb"] = task_emb
@@ -227,5 +238,5 @@ class ChunkPolicy(Policy):
         return action
 
     @abstractmethod
-    def sample_actions(self, obs):
+    def sample_actions(self, data: dict[str, Any]) -> np.ndarray:
         raise NotImplementedError("Implement in subclass")

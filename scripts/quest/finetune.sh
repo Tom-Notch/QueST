@@ -18,6 +18,7 @@ python train.py --config-name=train_fewshot.yaml \
 	training.auto_continue=true \
 	rollout.num_parallel_envs=5 \
 	rollout.rollouts_per_env=5 \
+	rollout.n_video=1 \
 	seed=0
 
 # Note1: training.auto_continue will automatically load the latest checkpoint from the previous training stage.

@@ -7,6 +7,8 @@ python evaluate.py \
 	variant_name=block_32_ds_4 \
 	stage=1 \
 	training.use_tqdm=false \
+	training.resume=true \
+	rollout.n_video=10 \
 	seed=0
 
 # Note1: this will automatically load the latest checkpoint as per your exp_name, variant_name, algo, and stage.

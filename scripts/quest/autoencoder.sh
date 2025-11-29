@@ -14,4 +14,5 @@ python train.py --config-name=train_autoencoder.yaml \
 	make_unique_experiment_dir=false \
 	algo.skill_block_size=32 \
 	algo.downsample_factor=4 \
+	rollout.n_video=1 \
 	seed=0
